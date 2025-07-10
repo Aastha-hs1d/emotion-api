@@ -25,7 +25,8 @@ SECRET_KEY = 'django-insecure-w3z#b$@p-%=aiy&c3dkl(dcum1*=-nc-1b197t27@q)0fn08n-
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'emotion-api-fmag.onrender.com']
+
 
 
 # Application definition
@@ -127,4 +128,8 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'
 
 INSTALLED_APPS += ['corsheaders']
 MIDDLEWARE = ['corsheaders.middleware.CorsMiddleware'] + MIDDLEWARE
-CORS_ALLOW_ALL_ORIGINS = True  # or specify React's origin for production
+CORS_ALLOW_ALL_ORIGINS = False
+CORS_ALLOWED_ORIGINS = [
+    'http://localhost:5173',
+    'https://emotion-fe.vercel.app',  # Replace with actual frontend domain
+]
