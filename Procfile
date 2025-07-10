@@ -1,0 +1,1 @@
+web: gunicorn emotion_api.wsgi:application
