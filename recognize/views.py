@@ -11,7 +11,7 @@ import traceback  # Add this import
 # Load model once
 MODEL_PATH = os.path.join(os.path.dirname(__file__), 'model.h5')
 model = load_model(MODEL_PATH)
-model.summary()
+
 emotion_labels = ['angry', 'disgust', 'fear', 'happy', 'neutral', 'surprise', 'sad']
 
 
