@@ -4,42 +4,33 @@ import librosa
 import soundfile as sf
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
-from tensorflow.keras.models import load_model
 from django.core.files.storage import default_storage
 import traceback  # Add this import
 
-# Load model once
-MODEL_PATH = os.path.join(os.path.dirname(__file__), 'model.h5')
-model = load_model(MODEL_PATH)
+# Lazy load model to save memory on free-tier containers
+model = None
+MODEL_PATH = os.path.join(os.path.dirname(__file__), "model.h5")
+emotion_labels = ['angry', 'disgust', 'fear', 'happy', 'neutral', 'surprise', 'sad']
+
+def get_model():
+    """Load the Keras model on first request to reduce memory usage."""
+    global model
+    if model is None:
+        from tensorflow.keras.models import load_model
+        model = load_model(MODEL_PATH)
+    return model
 
 emotion_labels = ['angry', 'disgust', 'fear', 'happy', 'neutral', 'surprise', 'sad']
 
 
+
 def extract_features(file_path):
-    
-    """
-    Extracts MFCC (Mel-frequency cepstral coefficients) features from the input audio file.
-
-    Parameters:
-    -----------
-    file_path : str
-        Path to the .wav audio file.
-
-    Returns:
-    --------
-    numpy.ndarray
-        Extracted MFCC features with shape (40, 1), ready to be passed into the model.
-
-    Notes:
-    ------
-    - Uses a fixed duration of 3 seconds with an offset of 0.5s for consistency.
-    - MFCCs are a widely-used feature representation in audio and speech classification tasks.
-    - Applies mean aggregation along the time axis for simplicity.
-    """
-
-    y, sr = librosa.load(file_path, duration=3, offset=0.5)
+    y, sr = sf.read(file_path, dtype='float32')  # read .wav directly
+    if len(y.shape) > 1:
+        y = y.mean(axis=1)  # convert to mono
+    y = y[:int(sr*3)]  # 3 seconds
     mfcc = np.mean(librosa.feature.mfcc(y=y, sr=sr, n_mfcc=40).T, axis=0)
-    mfcc = np.expand_dims(mfcc, axis=-1)  # (40, 1)
+    mfcc = np.expand_dims(mfcc, axis=-1)
     return mfcc
 
 @csrf_exempt
@@ -78,8 +69,10 @@ def predict_emotion(request):
             print(f"[INFO] Extracted features shape: {features.shape}")
 
             features = np.expand_dims(features, axis=0)
-            prediction = model.predict(features)
-            print(prediction)
+
+            # Lazy load model
+            model_instance = get_model()
+            prediction = model_instance.predict(features, verbose=0)
             predicted_emotion = emotion_labels[np.argmax(prediction)]
 
             os.remove(file_path)
